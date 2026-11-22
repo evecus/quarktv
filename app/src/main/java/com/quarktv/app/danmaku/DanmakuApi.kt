@@ -190,13 +190,13 @@ object DanmakuApi {
                 for (i in 0 until array.length()) {
                     val item = array.optJSONObject(i) ?: continue
                     val url = optStr(item, "url")
-                    if (url.isNotEmpty()) return url
+                    if (!url.isNullOrEmpty()) return url
                 }
                 ""
             } catch (_: Exception) { "" }
         }
         if (text.startsWith("{")) {
-            return try { optStr(JSONObject(text), "url") } catch (_: Exception) { "" }
+            return try { optStr(JSONObject(text), "url").orEmpty() } catch (_: Exception) { "" }
         }
         if (text.startsWith("http") || text.startsWith("file")) return text
         return ""
@@ -214,7 +214,7 @@ object DanmakuApi {
                 is JSONArray -> { appendSearchResults(results, items); return results }
             }
             val url = optStr(obj, "url")
-            if (url.isNotEmpty()) {
+            if (!url.isNullOrEmpty()) {
                 results.add(DanmuSearchResult(firstStr(obj, listOf("name", "title")), url))
             }
         } catch (_: Exception) {
@@ -226,7 +226,7 @@ object DanmakuApi {
         for (i in 0 until items.length()) {
             val item = items.optJSONObject(i) ?: continue
             val url = optStr(item, "url")
-            if (url.isEmpty()) continue
+            if (url.isNullOrEmpty()) continue
             results.add(DanmuSearchResult(firstStr(item, listOf("name", "title", "episode", "vod_name")), url))
         }
     }
@@ -292,28 +292,30 @@ object DanmakuApi {
         }
     } catch (_: Exception) { false }
 
-    private fun findEpisode(body: String, episode: String, allowMovieFallback: Boolean = true): EpisodeMatch? = try {
-        val obj = JSONObject(body)
-        val episodeList = findEpisodeList(obj) ?: return null
-        if (episodeList.episodes.isEmpty()) return null
-        val targetNumber = extractNumber(episode)
-        var first: EpisodeMatch? = null
-        var firstMandarin: EpisodeMatch? = null
-        for (item in episodeList.episodes) {
-            val id = firstStr(item, listOf("episodeId", "id"))
-            if (id.isEmpty()) continue
-            val title = firstStr(item, listOf("episodeTitle", "title", "name"))
-            val number = parseEpisodeNumber(firstStr(item, listOf("episodeNumber", "number", "sort")))
-            val match = EpisodeMatch(id, title, number)
-            if (first == null) first = match
-            if (firstMandarin == null && isMandarinTitle(title)) firstMandarin = match
-            if (episode.isNotEmpty() && title.isNotEmpty() && title.contains(episode)) return match
-            if (targetNumber > 0 && number == targetNumber) return match
-            if (targetNumber > 0 && extractNumber(title) == targetNumber) return match
-        }
-        if (episode.isEmpty()) return first
-        if (allowMovieFallback && episodeList.isMovie) firstMandarin ?: first else null
-    } catch (_: Exception) { null }
+    private fun findEpisode(body: String, episode: String, allowMovieFallback: Boolean = true): EpisodeMatch? {
+        return try {
+            val obj = JSONObject(body)
+            val episodeList = findEpisodeList(obj) ?: return null
+            if (episodeList.episodes.isEmpty()) return null
+            val targetNumber = extractNumber(episode)
+            var first: EpisodeMatch? = null
+            var firstMandarin: EpisodeMatch? = null
+            for (item in episodeList.episodes) {
+                val id = firstStr(item, listOf("episodeId", "id"))
+                if (id.isEmpty()) continue
+                val title = firstStr(item, listOf("episodeTitle", "title", "name"))
+                val number = parseEpisodeNumber(firstStr(item, listOf("episodeNumber", "number", "sort")))
+                val match = EpisodeMatch(id, title, number)
+                if (first == null) first = match
+                if (firstMandarin == null && isMandarinTitle(title)) firstMandarin = match
+                if (episode.isNotEmpty() && title.isNotEmpty() && title.contains(episode)) return match
+                if (targetNumber > 0 && number == targetNumber) return match
+                if (targetNumber > 0 && extractNumber(title) == targetNumber) return match
+            }
+            if (episode.isEmpty()) return first
+            if (allowMovieFallback && episodeList.isMovie) firstMandarin ?: first else null
+        } catch (_: Exception) { null }
+    }
 
     private fun findEpisodeList(obj: JSONObject): EpisodeList? {
         (obj.opt("episodes") as? JSONArray)?.let { return EpisodeList(it.toMapList(), isMovieType(obj)) }
@@ -336,29 +338,31 @@ object DanmakuApi {
         return out
     }
 
-    private fun findMovieFallback(body: String, episode: String): EpisodeMatch? = try {
-        val obj = JSONObject(body)
-        val animes = obj.opt("animes") ?: obj.opt("anime") ?: obj.opt("data")
-        if (animes !is JSONArray) return null
-        val preferCantonese = episode.contains("粤语")
-        var firstMovie: EpisodeMatch? = null
-        for (i in 0 until animes.length()) {
-            val anime = animes.optJSONObject(i) ?: continue
-            if (!isMovieType(anime)) continue
-            val episodes = anime.opt("episodes") as? JSONArray ?: continue
-            for (j in 0 until episodes.length()) {
-                val ep = episodes.optJSONObject(j) ?: continue
-                val id = firstStr(ep, listOf("episodeId", "id"))
-                if (id.isEmpty()) continue
-                val title = firstStr(ep, listOf("episodeTitle", "title", "name"))
-                val match = EpisodeMatch(id, title, parseEpisodeNumber(firstStr(ep, listOf("episodeNumber", "number", "sort"))))
-                if (firstMovie == null) firstMovie = match
-                val preferred = if (preferCantonese) title.contains("粤语") else isMandarinTitle(title)
-                if (preferred) return match
+    private fun findMovieFallback(body: String, episode: String): EpisodeMatch? {
+        return try {
+            val obj = JSONObject(body)
+            val animes = obj.opt("animes") ?: obj.opt("anime") ?: obj.opt("data")
+            if (animes !is JSONArray) return null
+            val preferCantonese = episode.contains("粤语")
+            var firstMovie: EpisodeMatch? = null
+            for (i in 0 until animes.length()) {
+                val anime = animes.optJSONObject(i) ?: continue
+                if (!isMovieType(anime)) continue
+                val episodes = anime.opt("episodes") as? JSONArray ?: continue
+                for (j in 0 until episodes.length()) {
+                    val ep = episodes.optJSONObject(j) ?: continue
+                    val id = firstStr(ep, listOf("episodeId", "id"))
+                    if (id.isEmpty()) continue
+                    val title = firstStr(ep, listOf("episodeTitle", "title", "name"))
+                    val match = EpisodeMatch(id, title, parseEpisodeNumber(firstStr(ep, listOf("episodeNumber", "number", "sort"))))
+                    if (firstMovie == null) firstMovie = match
+                    val preferred = if (preferCantonese) title.contains("粤语") else isMandarinTitle(title)
+                    if (preferred) return match
+                }
             }
-        }
-        firstMovie
-    } catch (_: Exception) { null }
+            firstMovie
+        } catch (_: Exception) { null }
+    }
 
     private fun isMovieType(obj: JSONObject): Boolean {
         val type = optStr(obj, "type") ?: optStr(obj, "typeDescription")
