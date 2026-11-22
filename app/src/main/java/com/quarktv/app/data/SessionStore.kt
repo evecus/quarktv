@@ -23,7 +23,7 @@ class SessionStore(private val context: Context) : QuarkTvClient.SessionProvider
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    var deviceId: String = ""
+    override var deviceId: String = ""
         private set
 
     override var accessToken: String = ""

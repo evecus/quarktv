@@ -89,7 +89,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     debugImplementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.tv:tv-material:1.0.1")
+    implementation("androidx.compose.material3:material3")
 
     // 图片加载（缩略图 / 二维码）
     implementation("io.coil-kt:coil-compose:2.7.0")

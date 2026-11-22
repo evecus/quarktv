@@ -2,11 +2,15 @@ package com.quarktv.app.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,14 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.width
-import androidx.tv.material3.ClickableSurfaceDefaults
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Surface
-import androidx.tv.material3.Text
 import com.quarktv.app.data.SessionStore
 import com.quarktv.app.ui.theme.QuarkColors
+import com.quarktv.app.ui.theme.TvSurface
 
 /** 设置弹窗：直链方式、退出登录 */
 @Composable
@@ -30,16 +31,15 @@ fun SettingsDialog(
     onDismiss: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    // 本地状态镜像 session，点击即时刷新 UI
     var linkMethod by remember { mutableStateOf(session.linkMethod) }
     var resolution by remember { mutableStateOf(session.preferredResolution) }
     val resolutions = listOf("" to "自动", "low" to "流畅", "normal" to "标清",
         "high" to "高清", "super" to "超清", "2k" to "2K", "4k" to "4K")
 
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(120.dp),
+            .fillMaxSize()
+            .background(Color(0x99000000)),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -81,16 +81,18 @@ fun SettingsDialog(
                 }
             }
 
-            Surface(
+            TvSurface(
                 onClick = onLogout,
-                shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(8.dp)),
-                color = ClickableSurfaceDefaults.color(
-                    container = QuarkColors.SurfaceHover,
-                    focusedContainer = QuarkColors.Primary,
-                ),
+                shape = RoundedCornerShape(8.dp),
+                containerColor = QuarkColors.SurfaceHover,
+                focusedColor = QuarkColors.Primary,
+                focusScale = 1f,
             ) {
-                Text("退出登录", modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    color = QuarkColors.TextPrimary)
+                Text(
+                    "退出登录",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    color = QuarkColors.TextPrimary,
+                )
             }
         }
     }
@@ -98,21 +100,18 @@ fun SettingsDialog(
 
 @Composable
 private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
+    TvSurface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(14.dp)),
-        color = ClickableSurfaceDefaults.color(
-            container = if (selected) QuarkColors.Primary else QuarkColors.SurfaceHover,
-            focusedContainer = if (selected) QuarkColors.Primary else QuarkColors.SurfaceHover,
-        ),
+        shape = RoundedCornerShape(14.dp),
+        containerColor = if (selected) QuarkColors.Primary else QuarkColors.SurfaceHover,
+        focusedColor = if (selected) QuarkColors.Primary else QuarkColors.Primary,
+        focusScale = 1f,
     ) {
         Text(
             text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            color = Color_White,
+            color = Color.White,
             style = MaterialTheme.typography.labelMedium,
         )
     }
 }
-
-private val Color_White = androidx.compose.ui.graphics.Color.White

@@ -142,7 +142,7 @@ class QuarkTvClient(
             if (!respHttp.isSuccessful && text.isEmpty()) {
                 throw QuarkException("HTTP ${respHttp.code}")
             }
-            val json = runCatching { JSONObject(text) }.orElse(JSONObject())
+            val json = runCatching { JSONObject(text) }.getOrElse { JSONObject() }
             val resp = Resp.from(json)
             if (tokenInvalid(resp)) {
                 if (retryOnTokenExpired && session.refreshToken.isNotEmpty()) {

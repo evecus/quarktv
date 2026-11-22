@@ -1,6 +1,5 @@
 package com.quarktv.app.ui.player
 
-import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -17,12 +18,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.tv.material3.Text
 import com.quarktv.app.quark.QuarkTvClient
 import com.quarktv.app.quark.model.QuarkFile
 import com.quarktv.app.ui.browser.formatDuration
@@ -55,9 +59,7 @@ fun AudioPlayerScreen(
         withContext(Dispatchers.IO) {
             runCatching { client.downloadLink(file.fid) }
                 .onSuccess { link ->
-                    val item = MediaItem.Builder()
-                        .setUri(link.url)
-                        .build()
+                    val item = MediaItem.Builder().setUri(link.url).build()
                     withContext(Dispatchers.Main) {
                         player.setMediaItem(item)
                         player.prepare()
@@ -72,7 +74,6 @@ fun AudioPlayerScreen(
     LaunchedEffect(file.fid) {
         while (true) {
             delay(500)
-            if (error != null) break
             positionMs = player.currentPosition.coerceAtLeast(0)
             durationMs = if (player.duration > 0) player.duration else file.duration * 1000
         }
@@ -83,16 +84,20 @@ fun AudioPlayerScreen(
             .fillMaxSize()
             .background(QuarkColors.Background)
             .onPreviewKeyEvent { e ->
-                if (e.action != KeyEvent.ACTION_DOWN) return@onPreviewKeyEvent false
-                when (e.keyCode) {
-                    KeyEvent.KEYCODE_BACK -> { onBack(); true }
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (e.key) {
+                    Key.Back -> { onBack(); true }
+                    Key.DirectionCenter, Key.Enter -> {
                         paused = !paused
                         if (paused) player.pause() else player.play()
                         true
                     }
-                    KeyEvent.KEYCODE_DPAD_LEFT -> { player.seekBack(10_000); true }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> { player.seekForward(10_000); true }
+                    Key.DirectionLeft -> {
+                        player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)); true
+                    }
+                    Key.DirectionRight -> {
+                        player.seekTo(player.currentPosition + 10_000); true
+                    }
                     else -> false
                 }
             },
@@ -100,32 +105,31 @@ fun AudioPlayerScreen(
     ) {
         if (error == null) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "🎵",
-                    style = androidx.tv.material3.MaterialTheme.typography.displayLarge,
-                )
+                Text("🎵", style = MaterialTheme.typography.displayLarge)
                 Spacer(Modifier.height(24.dp))
                 Text(file.filename, color = QuarkColors.TextPrimary,
-                    style = androidx.tv.material3.MaterialTheme.typography.headlineSmall)
+                    style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(8.dp))
                 if (durationMs > 0) {
                     Text(
                         "${formatDuration(positionMs / 1000)} / ${formatDuration(durationMs / 1000)}",
                         color = QuarkColors.TextSecondary,
-                        style = androidx.tv.material3.MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    if (file.size > 0) formatSize(file.size) else "",
-                    color = QuarkColors.TextSecondary,
-                    style = androidx.tv.material3.MaterialTheme.typography.labelSmall,
-                )
+                if (file.size > 0) {
+                    Text(
+                        formatSize(file.size),
+                        color = QuarkColors.TextSecondary,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
                 Spacer(Modifier.height(32.dp))
                 Text(
                     if (paused) "已暂停 · OK 继续" else "播放中 · OK 暂停 · ◀▶ ±10s",
                     color = QuarkColors.TextSecondary,
-                    style = androidx.tv.material3.MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall,
                 )
             }
         } else {

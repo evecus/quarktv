@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.quarktv.app.data.SessionStore
 import com.quarktv.app.quark.QuarkTvClient
-import com.quarktv.app.ui.Screen
+import com.quarktv.app.ui.theme.Screen
 import com.quarktv.app.ui.browser.BrowserScreen
 import com.quarktv.app.ui.login.LoginScreen
 import kotlinx.coroutines.Dispatchers
