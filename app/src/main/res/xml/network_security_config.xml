@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网络安全配置：Android 9+ 默认禁止明文 HTTP。
+  夸克/UC TV 的 code→token 换发必须走 extscreen 中转的 HTTP 端点
+  （https 会 301 跳回 http:8080，官方 /token 又需要额外 _timestamp 参数），
+  因此仅对这两个中转域名精确放行明文，其余域名仍强制 HTTPS。
+-->
+<network-security-config>
+    <!-- 兜底：所有域名默认禁止明文 -->
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">api.extscreen.com</domain>
+    </domain-config>
+</network-security-config>
