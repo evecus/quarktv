@@ -1,0 +1,58 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode signing keystore from secrets
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/quarktv.jks"
+            echo "path=$RUNNER_TEMP/quarktv.jks" >> "$GITHUB_OUTPUT"
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "已解码签名 keystore"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::未配置 KEYSTORE_BASE64，release 将输出未签名 APK"
+          fi
+
+      - name: Build release APK
+        env:
+          SIGNING_STORE_FILE: ${{ steps.keystore.outputs.path }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Rename signed release APK
+        if: steps.keystore.outputs.available == 'true'
+        run: |
+          SRC=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          cp "$SRC" app/build/outputs/apk/release/QuarkTV-release-signed.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test
+          prerelease: false
+          files: app/build/outputs/apk/release/*.apk
