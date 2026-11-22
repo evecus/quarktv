@@ -7,9 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.quarktv.app.data.SessionStore
+import com.quarktv.app.danmaku.DanmuSettingsPanel
 import com.quarktv.app.ui.theme.QuarkColors
 import com.quarktv.app.ui.theme.TvSurface
 
@@ -50,9 +55,12 @@ fun SettingsDialog(
     ) {
         Column(
             modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .heightIn(max = 760.dp)
                 .background(QuarkColors.Surface, RoundedCornerShape(16.dp))
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("设置", style = MaterialTheme.typography.headlineSmall,
                 color = QuarkColors.TextPrimary)
@@ -96,6 +104,8 @@ fun SettingsDialog(
                     }
                 }
             }
+
+            DanmuSettingsPanel()
 
             TvSurface(
                 onClick = onLogout,

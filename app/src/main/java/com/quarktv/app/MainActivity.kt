@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.quarktv.app.data.SessionStore
+import com.quarktv.app.danmaku.DanmuSettings
 import com.quarktv.app.quark.QuarkTvClient
 import com.quarktv.app.ui.theme.Screen
 import com.quarktv.app.ui.browser.BrowserScreen
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         session = SessionStore(applicationContext)
         session.loadBlocking()
+        DanmuSettings.init(applicationContext)
         client = QuarkTvClient(session = session)
 
         // 首帧直接出 UI（校验中显示空屏），避免黑屏等待

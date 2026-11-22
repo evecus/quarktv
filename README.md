@@ -10,7 +10,9 @@ Kotlin + Jetpack Compose TV + Media3 EXO 单内核，minSdk 21。
 - **视频播放**：原画直链（download）或多档转码流（streaming，low→4K），按 ▲ 呼出清晰度菜单；
   streaming 模式读取 `last_play_time` 云续播
 - **音乐播放**：直链播放，进度/时长显示
-- **设置**：播放方式（原画/转码）、默认清晰度、退出登录
+- **弹幕**：进入视频自动按文件名搜索弹幕（片名+集数），播放页右上角「搜弹幕」按钮可云搜候选并手动选择；
+  渲染用 DanmakuFlameMaster，支持开关/行数/速度/字号/透明度/随机颜色/自定义接口
+- **设置**：播放方式（原画/转码）、默认清晰度、弹幕设置、退出登录
 
 ## 协议（对齐 OpenList drivers/quark_uc_tv）
 
@@ -23,6 +25,16 @@ Kotlin + Jetpack Compose TV + Media3 EXO 单内核，minSdk 21。
 | 播放 | `GET /file?method=download`（原画）/ `method=streaming`（转码+续播进度） |
 
 token 换发中转走 `api.extscreen.com/quarkdrive`（extscreen 第三方服务，与 OpenList 一致）。
+
+## 弹幕（对齐 ubox-master / danmu-anywhere 插件）
+
+| 项 | 说明 |
+|---|---|
+| 渲染 | `com.github.ctiao:DanmakuFlameMaster:0.9.25`，视频层上叠加透明 `DanmakuView`，seek/暂停/缓冲与 EXO 时间轴联动 |
+| 数据源 | 内置 `https://logvardanmu.konfan.cn/87654321`（与 danmu-anywhere 插件同源）：`search/episodes` → `comment/{id}?format=json` → 转 bilibili XML；支持 `{name}/{episode}` 占位或 `/danmaku` POST 自定义接口 |
+| 自动搜 | 进入视频按文件名推断片名+集数自动搜索（`DanmuName`），结果存于与视图解耦的 Manager，重组/全屏不丢 |
+| 手动搜 | 播放页「搜弹幕」按钮 → 云搜候选列表 → 点选加载 |
+| 设置 | 设置弹窗内「弹幕设置」区：开关/行数/速度/字号/透明度/随机颜色/内置或自定义接口，改后即时热更新（DataStore 持久化） |
 
 ## 构建与签名
 

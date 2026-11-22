@@ -1,5 +1,6 @@
 package com.quarktv.app.ui.theme
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -17,6 +18,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // 官方夸克风格配色
@@ -25,6 +27,7 @@ object QuarkColors {
     val Surface = Color(0xFF1C1F26)
     val SurfaceHover = Color(0xFF2B3545)
     val Primary = Color(0xFF3D7EFF)      // 夸克蓝
+    val FocusBorder = Color(0xFF5B9CFF)  // 焦点蓝框（比 Primary 更亮，TV 上更醒目）
     val TextPrimary = Color(0xFFEAECF2)
     val TextSecondary = Color(0xFF8A93A5)
     val Divider = Color(0xFF2A2F3A)
@@ -52,6 +55,8 @@ fun TvSurface(
     focusedColor: Color = QuarkColors.SurfaceHover,
     shape: Shape = RoundedCornerShape(10.dp),
     focusScale: Float = 1.05f,
+    focusBorderColor: Color = QuarkColors.FocusBorder,
+    focusBorderWidth: Dp = 2.dp,
     onFocus: (Boolean) -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -68,6 +73,7 @@ fun TvSurface(
             .scale(if (focused) focusScale else 1f),
         shape = shape,
         color = if (focused) focusedColor else containerColor,
+        border = if (focused) BorderStroke(focusBorderWidth, focusBorderColor) else null,
     ) {
         Box(content = content)
     }
