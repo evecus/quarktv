@@ -55,7 +55,7 @@ android {
     }
 
     // 体积精简：剔除调试/无用元数据文件
-    packagingOptions {
+    packaging {
         resources {
             excludes += setOf(
                 "DebugProbesKt.bin",
