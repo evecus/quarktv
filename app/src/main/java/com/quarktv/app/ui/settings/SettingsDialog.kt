@@ -1,5 +1,6 @@
 package com.quarktv.app.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,17 +25,22 @@ import com.quarktv.app.data.SessionStore
 import com.quarktv.app.ui.theme.QuarkColors
 import com.quarktv.app.ui.theme.TvSurface
 
-/** 设置弹窗：直链方式、退出登录 */
+/** 设置弹窗：直链方式、退出登录。返回键仅关闭弹窗，不退出 App。 */
 @Composable
 fun SettingsDialog(
     session: SessionStore,
     onDismiss: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    // 关键：注册 BackHandler 拦截系统返回键，只关闭弹窗
+    BackHandler(enabled = true) { onDismiss() }
+
     var linkMethod by remember { mutableStateOf(session.linkMethod) }
     var resolution by remember { mutableStateOf(session.preferredResolution) }
-    val resolutions = listOf("" to "自动", "low" to "流畅", "normal" to "标清",
-        "high" to "高清", "super" to "超清", "2k" to "2K", "4k" to "4K")
+    val resolutions = listOf(
+        "" to "自动", "low" to "流畅", "normal" to "标清",
+        "high" to "高清", "super" to "超清", "2k" to "2K", "4k" to "4K",
+    )
 
     Box(
         modifier = Modifier
@@ -54,14 +60,24 @@ fun SettingsDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("播放方式", color = QuarkColors.TextSecondary,
                     modifier = Modifier.width(120.dp))
-                Chip(
-                    text = if (linkMethod == "download") "原画直链" else "转码流",
-                    selected = true,
-                    onClick = {
-                        linkMethod = if (linkMethod == "download") "streaming" else "download"
-                        session.saveLinkMethod(linkMethod)
-                    },
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip(
+                        text = "转码流（推荐）",
+                        selected = linkMethod == "streaming",
+                        onClick = {
+                            linkMethod = "streaming"
+                            session.saveLinkMethod(linkMethod)
+                        },
+                    )
+                    Chip(
+                        text = "原画直链",
+                        selected = linkMethod == "download",
+                        onClick = {
+                            linkMethod = "download"
+                            session.saveLinkMethod(linkMethod)
+                        },
+                    )
+                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -104,7 +120,7 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
         containerColor = if (selected) QuarkColors.Primary else QuarkColors.SurfaceHover,
-        focusedColor = if (selected) QuarkColors.Primary else QuarkColors.Primary,
+        focusedColor = QuarkColors.Primary,
         focusScale = 1f,
     ) {
         Text(

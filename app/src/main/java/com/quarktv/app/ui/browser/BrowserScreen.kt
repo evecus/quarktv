@@ -1,5 +1,6 @@
 package com.quarktv.app.ui.browser
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -120,6 +121,9 @@ private fun BrowserDir(
     var restorePending by remember(entry.fid) { mutableStateOf(initialFocusIndex > 0) }
     val focusRequesters = remember(entry.fid) { mutableMapOf<Int, FocusRequester>() }
     val listState = rememberLazyGridState()
+
+    // 子目录按返回键回上级；根目录不拦截（交给系统默认，退出 App）
+    BackHandler(enabled = !isRoot) { onBack() }
 
     LaunchedEffect(entry.fid) {
         withContext(Dispatchers.IO) {

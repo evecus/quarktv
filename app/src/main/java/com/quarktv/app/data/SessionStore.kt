@@ -30,7 +30,7 @@ class SessionStore(private val context: Context) : QuarkTvClient.SessionProvider
     override var refreshToken: String = ""
 
     // 偏好
-    var linkMethod: String = "download"    // download 原画 / streaming 转码
+    var linkMethod: String = "streaming"   // streaming 转码流（默认，绕开下载限速）/ download 原画
     var preferredResolution: String = ""   // 空=自动；low/normal/high/super/2k/4k
 
     private val keyRefresh = stringPreferencesKey("refresh_token")
@@ -51,7 +51,7 @@ class SessionStore(private val context: Context) : QuarkTvClient.SessionProvider
         deviceId = p[keyDevice] ?: newDeviceId().also { persistRaw("device_id", it) }
         refreshToken = p[keyRefresh] ?: ""
         accessToken = p[keyAccess] ?: ""
-        linkMethod = p[keyLinkMethod] ?: "download"
+        linkMethod = p[keyLinkMethod] ?: "streaming"
         preferredResolution = p[keyResolution] ?: ""
         Unit
     }

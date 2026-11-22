@@ -1,5 +1,6 @@
 package com.quarktv.app.ui.player
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.quarktv.app.quark.QuarkTvClient
@@ -42,8 +46,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * 视频播放页（EXO 单内核）。
- * DPAD：OK=暂停/继续，左/右=±10s，上=清晰度菜单，返回=退出。
- * streaming 模式带 last_play_time 云续播。
+ * DPAD：OK=暂停/继续，左/右=±10s，上=清晰度菜单，返回=退出播放界面。
+ * 默认走转码流（绕开夸克下载直链限速）；失败自动回退原画。
  */
 @Composable
 fun VideoPlayerScreen(
@@ -56,29 +60,70 @@ fun VideoPlayerScreen(
     val context = LocalContext.current
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var buffering by remember { mutableStateOf(false) }
+    var sourceLabel by remember { mutableStateOf("") }
     var variants by remember { mutableStateOf<List<StreamVariant>>(emptyList()) }
     var currentUrl by remember { mutableStateOf<String?>(null) }
     var startAtMs by remember { mutableStateOf(0L) }
     var showMenu by remember { mutableStateOf(false) }
     var paused by remember { mutableStateOf(false) }
 
-    val player = remember { ExoPlayer.Builder(context).build() }
+    // 增大缓冲：默认 50s / 最大 120s，缓解限速导致的“播一会停一会”
+    val player = remember {
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                30_000,  // minBufferMs：开始播放前缓冲 30s
+                120_000, // maxBufferMs：最多缓冲 120s，缓解限速卡顿
+                2_500,   // bufferForPlaybackMs
+                5_000,   // bufferForPlaybackAfterRebufferMs
+            )
+            .build()
+        ExoPlayer.Builder(context)
+            .setLoadControl(loadControl)
+            .build()
+            .apply {
+                addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        buffering = playbackState == Player.STATE_BUFFERING
+                    }
+
+                    override fun onPlayerError(e: PlaybackException) {
+                        error = "播放错误：${e.message ?: e.errorCodeName}"
+                        buffering = false
+                    }
+                })
+            }
+    }
     DisposableEffect(Unit) { onDispose { player.release() } }
 
-    // 取直链
+    // 返回键只退出播放界面（BackHandler 才是真正拦截系统返回）
+    BackHandler(enabled = true) {
+        if (showMenu) showMenu = false else onBack()
+    }
+
+    // 取直链：转码优先，失败回退原画
     LaunchedEffect(file.fid, linkMethod) {
         withContext(Dispatchers.IO) {
             runCatching {
                 if (linkMethod == "streaming") {
-                    val link = client.streamingLink(file.fid)
-                    variants = link.variants
-                    startAtMs = link.lastPlayTime * 1000
-                    val picked = if (preferredResolution.isEmpty()) link.variants.first()
-                    else link.variants.firstOrNull { it.resolution == preferredResolution }
-                        ?: link.variants.first()
-                    picked
+                    val link = runCatching { client.streamingLink(file.fid) }.getOrNull()
+                    if (link != null) {
+                        variants = link.variants
+                        startAtMs = link.lastPlayTime * 1000
+                        sourceLabel = "转码流"
+                        val picked = if (preferredResolution.isEmpty()) link.variants.first()
+                        else link.variants.firstOrNull { it.resolution == preferredResolution }
+                            ?: link.variants.first()
+                        picked
+                    } else {
+                        // 转码不可用（如无会员/接口失败）→ 回退原画
+                        val dl = client.downloadLink(file.fid)
+                        sourceLabel = "原画直链"
+                        StreamVariant("", dl.url, dl.size, 0, 0, 0)
+                    }
                 } else {
                     val dl = client.downloadLink(file.fid)
+                    sourceLabel = "原画直链"
                     StreamVariant("", dl.url, dl.size, 0, 0, 0)
                 }
             }.onSuccess { v -> currentUrl = v.url }
@@ -107,10 +152,6 @@ fun VideoPlayerScreen(
             .onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.key) {
-                    Key.Back -> {
-                        if (showMenu) showMenu = false else onBack()
-                        true
-                    }
                     Key.DirectionCenter, Key.Enter -> {
                         if (showMenu) false
                         else {
@@ -144,6 +185,11 @@ fun VideoPlayerScreen(
         if (loading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("加载中…", color = Color.White)
+            }
+        }
+        if (buffering && !loading && error == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("缓冲中…", color = Color.White)
             }
         }
         if (error != null) {
@@ -196,16 +242,25 @@ fun VideoPlayerScreen(
             }
         }
 
-        // 底部操作提示
+        // 底部状态：片源 + 操作提示
         if (!showMenu && !loading && error == null) {
-            Text(
-                "OK 暂停/继续 · ◀▶ ±10s · ▲ 清晰度 · 返回退出",
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp),
-                color = Color.White.copy(alpha = 0.6f),
-                style = MaterialTheme.typography.labelSmall,
-            )
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (sourceLabel.isNotEmpty()) {
+                    Text("片源：$sourceLabel", color = Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall)
+                }
+                Text(
+                    "OK 暂停/继续 · ◀▶ ±10s · ▲ 清晰度 · 返回退出播放",
+                    color = Color.White.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
     }
 }

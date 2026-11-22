@@ -1,5 +1,6 @@
 package com.quarktv.app.ui.player
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,9 @@ fun AudioPlayerScreen(
     val player = remember { ExoPlayer.Builder(context).build() }
     DisposableEffect(Unit) { onDispose { player.release() } }
 
+    // 返回键只退出音乐播放界面，不退出 App
+    BackHandler(enabled = true) { onBack() }
+
     LaunchedEffect(file.fid) {
         withContext(Dispatchers.IO) {
             runCatching { client.downloadLink(file.fid) }
@@ -86,7 +90,6 @@ fun AudioPlayerScreen(
             .onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.key) {
-                    Key.Back -> { onBack(); true }
                     Key.DirectionCenter, Key.Enter -> {
                         paused = !paused
                         if (paused) player.pause() else player.play()

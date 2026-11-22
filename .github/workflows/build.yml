@@ -48,7 +48,7 @@ jobs:
         if: steps.keystore.outputs.available == 'true'
         run: |
           SRC=$(ls app/build/outputs/apk/release/*.apk | head -1)
-          cp "$SRC" app/build/outputs/apk/release/QuarkTV-release-signed.apk
+          mv "$SRC" app/build/outputs/apk/release/QuarkTV-release-signed.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
