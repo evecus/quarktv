@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import com.quarktv.app.data.SessionStore
 import com.quarktv.app.danmaku.DanmuSettings
 import com.quarktv.app.quark.QuarkTvClient
+import com.quarktv.app.ui.theme.QuarkTheme
 import com.quarktv.app.ui.theme.Screen
 import com.quarktv.app.ui.browser.BrowserScreen
 import com.quarktv.app.ui.login.LoginScreen
@@ -34,24 +35,26 @@ class MainActivity : ComponentActivity() {
 
         // 首帧直接出 UI（校验中显示空屏），避免黑屏等待
         setContent {
-            Screen {
-                when (val state = loggedIn) {
-                    null -> androidx.compose.foundation.layout.Box {}
-                    false -> LoginScreen(
-                        client = client,
-                        session = session,
-                        onLoginSuccess = { loggedIn = true },
-                    )
-                    else -> BrowserScreen(
-                        client = client,
-                        session = session,
-                        onLogout = {
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                session.logout()
-                                withContext(Dispatchers.Main) { loggedIn = false }
-                            }
-                        },
-                    )
+            QuarkTheme {
+                Screen {
+                    when (val state = loggedIn) {
+                        null -> androidx.compose.foundation.layout.Box {}
+                        false -> LoginScreen(
+                            client = client,
+                            session = session,
+                            onLoginSuccess = { loggedIn = true },
+                        )
+                        else -> BrowserScreen(
+                            client = client,
+                            session = session,
+                            onLogout = {
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    session.logout()
+                                    withContext(Dispatchers.Main) { loggedIn = false }
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

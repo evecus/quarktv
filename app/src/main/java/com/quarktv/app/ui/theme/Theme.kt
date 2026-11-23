@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 // 官方夸克风格配色
 object QuarkColors {
@@ -31,6 +34,37 @@ object QuarkColors {
     val TextPrimary = Color(0xFFEAECF2)
     val TextSecondary = Color(0xFF8A93A5)
     val Divider = Color(0xFF2A2F3A)
+}
+
+/**
+ * TV 放大字号：基于 Material3 默认 Typography 逐档放大。
+ * 指纹/遥控器在 3~5 米观看，系统默认字号偏小，这里整体上调约 1.3~1.5 倍。
+ * 全部页面统一通过 QuarkTheme 套用，一处生效。
+ */
+private val DefaultTypography = Typography()
+
+val TvTypography = Typography(
+    displayLarge = DefaultTypography.displayLarge.copy(fontSize = 76.sp),
+    displayMedium = DefaultTypography.displayMedium.copy(fontSize = 60.sp),
+    displaySmall  = DefaultTypography.displaySmall.copy(fontSize = 48.sp),
+    headlineLarge = DefaultTypography.headlineLarge.copy(fontSize = 44.sp),
+    headlineMedium = DefaultTypography.headlineMedium.copy(fontSize = 38.sp),
+    headlineSmall = DefaultTypography.headlineSmall.copy(fontSize = 32.sp),
+    titleLarge = DefaultTypography.titleLarge.copy(fontSize = 30.sp),
+    titleMedium = DefaultTypography.titleMedium.copy(fontSize = 24.sp),
+    titleSmall = DefaultTypography.titleSmall.copy(fontSize = 20.sp),
+    bodyLarge = DefaultTypography.bodyLarge.copy(fontSize = 22.sp),
+    bodyMedium = DefaultTypography.bodyMedium.copy(fontSize = 19.sp),
+    bodySmall = DefaultTypography.bodySmall.copy(fontSize = 16.sp),
+    labelLarge = DefaultTypography.labelLarge.copy(fontSize = 20.sp),
+    labelMedium = DefaultTypography.labelMedium.copy(fontSize = 17.sp),
+    labelSmall = DefaultTypography.labelSmall.copy(fontSize = 15.sp),
+)
+
+/** 统一主题：套用 TV 放大字号。颜色仍用 QuarkColors 显式指定，不依赖 colorScheme。 */
+@Composable
+fun QuarkTheme(content: @Composable () -> Unit) {
+    MaterialTheme(typography = TvTypography, content = content)
 }
 
 /** 全屏黑底容器 */

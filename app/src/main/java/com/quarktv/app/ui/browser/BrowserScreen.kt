@@ -186,12 +186,12 @@ private fun BrowserDir(
             files!!.isEmpty() -> CenterHint("目录为空")
             else -> LazyVerticalGrid(
                 state = listState,
-                columns = GridCells.Fixed(6),
+                columns = GridCells.Fixed(5),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 32.dp, vertical = 8.dp,
+                    horizontal = 32.dp, vertical = 12.dp,
                 ),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(files!!.size) { index ->
@@ -246,8 +246,8 @@ private fun FileCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 10f)
-                    .clip(RoundedCornerShape(10.dp))
+                    .aspectRatio(16f / 11f)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(QuarkColors.Surface),
                 contentAlignment = Alignment.Center,
             ) {
@@ -279,9 +279,9 @@ private fun FileCard(
             }
             Text(
                 file.filename,
-                modifier = Modifier.padding(top = 6.dp),
+                modifier = Modifier.padding(top = 8.dp),
                 color = QuarkColors.TextPrimary,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

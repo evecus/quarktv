@@ -22,6 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -79,7 +82,11 @@ fun VideoPlayerScreen(
     var startAtMs by remember { mutableStateOf(0L) }
     var showMenu by remember { mutableStateOf(false) }
     var showDanmuSearch by remember { mutableStateOf(false) }
+    var showControls by remember { mutableStateOf(false) }   // 控制条显隐（下键唤出）
+    var controlsTick by remember { mutableStateOf(0) }       // 每次操作重置自动隐藏计时
     var paused by remember { mutableStateOf(false) }
+    val rootFocus = remember { FocusRequester() }
+    val searchBtnFocus = remember { FocusRequester() }
     var danmuStatus by remember { mutableStateOf(DanmakuLoadStatus.IDLE) }
     var pickedDanmu by remember { mutableStateOf<DanmuSearchResult?>(null) }
     // 弹幕设置版本：变化时触发重组（topMargin 重算）与热更新
@@ -118,7 +125,27 @@ fun VideoPlayerScreen(
     BackHandler(enabled = true) {
         if (showDanmuSearch) showDanmuSearch = false
         else if (showMenu) showMenu = false
+        else if (showControls) showControls = false
         else onBack()
+    }
+
+    // 控制条 3 秒无操作自动隐藏（弹层打开时不计时）
+    LaunchedEffect(showControls, controlsTick, showMenu, showDanmuSearch) {
+        if (showControls && !showMenu && !showDanmuSearch) {
+            delay(3_000)
+            showControls = false
+        }
+    }
+
+    // 焦点管理：控制条显示 → 焦点给搜弹幕按钮；隐藏 → 焦点回根容器（保证下键可被根容器捕获）
+    LaunchedEffect(showControls) {
+        repeat(6) {
+            delay(30)
+            try {
+                if (showControls) searchBtnFocus.requestFocus() else rootFocus.requestFocus()
+                return@LaunchedEffect
+            } catch (_: Exception) {}
+        }
     }
 
     // 取直链：转码优先，失败回退原画
@@ -169,15 +196,6 @@ fun VideoPlayerScreen(
         }
     }
 
-    // 自动搜弹幕（按文件名）
-    LaunchedEffect(file.fid) {
-        if (!DanmuSettings.open) return@LaunchedEffect
-        val name = DanmuName.title(file.filename)
-        val ep = DanmuName.episode(file.filename)
-        withContext(Dispatchers.IO) { DanmakuManager.loadBySearch(name, ep) }
-        danmuStatus = DanmakuManager.status.value
-    }
-
     // 云搜选中条目 → 加载弹幕源
     LaunchedEffect(pickedDanmu) {
         val r = pickedDanmu ?: return@LaunchedEffect
@@ -201,25 +219,46 @@ fun VideoPlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .focusRequester(rootFocus)
+            .focusable()
             .onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                // 弹层（搜索/清晰度）打开时不拦截，交给弹层自己处理
+                if (showMenu || showDanmuSearch) return@onPreviewKeyEvent false
                 when (e.key) {
-                    Key.DirectionCenter, Key.Enter -> {
-                        if (showMenu || showDanmuSearch) false
-                        else { paused = !paused; if (paused) player.pause() else player.play(); true }
+                    // 下键唤出控制条；已在显示时续期
+                    Key.DirectionDown -> {
+                        showControls = true
+                        controlsTick++
+                        true
                     }
-                    Key.DirectionLeft -> {
-                        if (!showMenu && !showDanmuSearch) {
-                            player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)); true
-                        } else false
+                    else -> if (showControls) {
+                        // 控制条可见：只续期隐藏计时，不拦截，让方向键/OK 交给焦点按钮
+                        controlsTick++
+                        false
+                    } else {
+                        // 控制条隐藏：OK 暂停、左右 ±10s、上键清晰度
+                        when (e.key) {
+                            Key.DirectionCenter, Key.Enter -> {
+                                paused = !paused
+                                if (paused) player.pause() else player.play()
+                                true
+                            }
+                            Key.DirectionLeft -> {
+                                player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0))
+                                true
+                            }
+                            Key.DirectionRight -> {
+                                player.seekTo(player.currentPosition + 10_000)
+                                true
+                            }
+                            Key.DirectionUp -> if (variants.size > 1) {
+                                showMenu = true
+                                true
+                            } else false
+                            else -> false
+                        }
                     }
-                    Key.DirectionRight -> {
-                        if (!showMenu && !showDanmuSearch) {
-                            player.seekTo(player.currentPosition + 10_000); true
-                        } else false
-                    }
-                    Key.DirectionUp -> if (variants.size > 1) { showMenu = true; true } else false
-                    else -> false
                 }
             },
     ) {
@@ -242,29 +281,32 @@ fun VideoPlayerScreen(
         if (buffering && !loading && error == null) OverlayText("缓冲中…")
         if (error != null) OverlayText("播放失败：$error")
 
-        // 右上角弹幕按钮 + 清晰度按钮（可聚焦）
-        Row(
-            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            TvSurface(
-                onClick = { showDanmuSearch = true },
-                shape = RoundedCornerShape(8.dp),
-                containerColor = QuarkColors.Surface.copy(alpha = 0.7f),
-                focusedColor = QuarkColors.Primary,
+        // 右上角控制条（下键唤出，3 秒无操作自动隐藏）
+        if (showControls) {
+            Row(
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("搜弹幕", modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    color = Color.White, style = MaterialTheme.typography.labelMedium)
-            }
-            if (variants.size > 1) {
                 TvSurface(
-                    onClick = { showMenu = true },
+                    onClick = { showDanmuSearch = true },
+                    modifier = Modifier.focusRequester(searchBtnFocus),
                     shape = RoundedCornerShape(8.dp),
                     containerColor = QuarkColors.Surface.copy(alpha = 0.7f),
                     focusedColor = QuarkColors.Primary,
                 ) {
-                    Text("清晰度", modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    Text("搜弹幕", modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         color = Color.White, style = MaterialTheme.typography.labelMedium)
+                }
+                if (variants.size > 1) {
+                    TvSurface(
+                        onClick = { showMenu = true },
+                        shape = RoundedCornerShape(8.dp),
+                        containerColor = QuarkColors.Surface.copy(alpha = 0.7f),
+                        focusedColor = QuarkColors.Primary,
+                    ) {
+                        Text("清晰度", modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
         }
@@ -298,8 +340,8 @@ fun VideoPlayerScreen(
             }
         }
 
-        // 底部状态
-        if (!showMenu && !showDanmuSearch && !loading && error == null) {
+        // 底部状态（随控制条一起显隐）
+        if (showControls && !showMenu && !showDanmuSearch && !loading && error == null) {
             Column(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -314,14 +356,14 @@ fun VideoPlayerScreen(
                 }
                 Text("片源：$sourceLabel　弹幕：$dm", color = Color.White.copy(alpha = 0.5f),
                     style = MaterialTheme.typography.labelSmall)
-                Text("OK 暂停/继续 · ◀▶ ±10s · ▲ 清晰度 · 返回退出播放",
+                Text("▼ 控制条 · OK 暂停/继续 · ◀▶ ±10s · ▲ 清晰度 · 返回退出播放",
                     color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
             }
         }
 
         if (showDanmuSearch) {
             DanmuSearchDialog(
-                name = DanmuName.title(file.filename),
+                initialWord = DanmuName.title(file.filename),
                 episode = DanmuName.episode(file.filename),
                 onDismiss = { showDanmuSearch = false },
                 onPicked = { r -> pickedDanmu = r; showDanmuSearch = false },

@@ -86,7 +86,7 @@ fun LoginScreen(
 
         Box(
             modifier = Modifier
-                .size(320.dp)
+                .size(420.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(QuarkColors.Surface),
             contentAlignment = Alignment.Center,
@@ -97,7 +97,7 @@ fun LoginScreen(
                     bitmap = bmp.asImageBitmap(),
                     contentDescription = "登录二维码",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(300.dp),
+                    modifier = Modifier.size(400.dp),
                 )
             } else {
                 Text("二维码加载中…", color = QuarkColors.TextSecondary)
