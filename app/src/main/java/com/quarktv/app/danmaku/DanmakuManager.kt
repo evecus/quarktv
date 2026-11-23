@@ -2,6 +2,7 @@ package com.quarktv.app.danmaku
 
 import android.os.Looper
 import android.view.View
+import android.widget.Toast
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,14 @@ object DanmakuManager {
     val attached: Boolean get() = view != null
 
     private fun isMainThread() = Looper.myLooper() == Looper.getMainLooper()
+
+    /** 对齐 NovaTV：仅弹幕开启时提示，避免关闭状态刷屏（前缀与官方一致）。 */
+    private fun toast(msg: String) {
+        if (!DanmuSettings.open) return
+        val ctx = view?.context ?: return
+        val show = { Toast.makeText(ctx, "[弹幕] $msg", Toast.LENGTH_SHORT).show() }
+        if (isMainThread()) show() else view?.post(show)
+    }
 
     // ---------------- 视图生命周期 ----------------
 
@@ -98,7 +107,8 @@ object DanmakuManager {
         ctx.setScrollSpeedFactor(s.speed.toFloat())
             .setDanmakuTransparency(s.alpha.toFloat())
             .setScaleTextSize(s.sizeScale.toFloat())
-        ctx.setDanmakuStyle(IDisplayer.DANMAKU_STYLE_STROKEN, 3f)
+        // 对齐 NovaTV：用 SHADOW 阴影替代 STROKEN 描边，密集弹幕时绘制成本更低、不易卡顿
+        ctx.setDanmakuStyle(IDisplayer.DANMAKU_STYLE_SHADOW, 3f)
             .setDanmakuMargin(s.lineSpacingPx)
         val overlapping = HashMap<Int, Boolean>(4).apply {
             put(BaseDanmaku.TYPE_SCROLL_RL, true)
@@ -160,11 +170,11 @@ object DanmakuManager {
         }
         if (seq != loadSeq) return DanmakuLoadResult.SUPERSEDED
         if (parser == null) {
-            if (!silent) _status.value = DanmakuLoadStatus.FAILED
+            if (!silent) { _status.value = DanmakuLoadStatus.FAILED; toast("加载弹幕失败") }
             return DanmakuLoadResult.FAILED
         }
         if (parser.itemCount <= 0) {
-            if (!silent) _status.value = DanmakuLoadStatus.NONE
+            if (!silent) { _status.value = DanmakuLoadStatus.NONE; toast("暂无弹幕") }
             return DanmakuLoadResult.EMPTY
         }
         var prepareOk = true
@@ -175,7 +185,7 @@ object DanmakuManager {
         }
         if (seq != loadSeq) return DanmakuLoadResult.SUPERSEDED
         if (!prepareOk) {
-            if (!silent) _status.value = DanmakuLoadStatus.FAILED
+            if (!silent) { _status.value = DanmakuLoadStatus.FAILED; toast("加载弹幕失败") }
             return DanmakuLoadResult.FAILED
         }
         _status.value = DanmakuLoadStatus.OK
@@ -200,15 +210,25 @@ object DanmakuManager {
 
     // ---------------- 播放同步 ----------------
 
-    /** 位置跳变（seek）时对齐库时间轴；首次就绪时 start。 */
+    /**
+     * 位置跳变（seek）时对齐库时间轴；首次就绪时 start。
+     * 对齐 NovaTV startIfReady：首次才 start（初始化绘制循环），已启动后只 seekTo 重新对齐，
+     * 避免重复 start 重置弹幕计时器；首次启动时提示"加载弹幕成功"。
+     */
     fun syncPosition(positionMs: Long, playing: Boolean) {
         val v = view ?: return
         if (!prepared || !DanmuSettings.open) return
         val seeked = lastPosMs < 0 || abs(positionMs - lastPosMs) > 1000
         when {
             seeked -> {
-                v.seekTo(positionMs)
-                if (playing) { v.visibility = View.VISIBLE; v.start(positionMs); started = true }
+                if (!started && playing) {
+                    v.visibility = View.VISIBLE
+                    v.start(positionMs)
+                    started = true
+                    toast("加载弹幕成功")
+                } else {
+                    v.seekTo(positionMs)
+                }
                 lastPosMs = positionMs
             }
             !started && playing -> {
@@ -216,6 +236,7 @@ object DanmakuManager {
                 v.start(positionMs)
                 started = true
                 lastPosMs = positionMs
+                toast("加载弹幕成功")
             }
         }
     }
@@ -226,11 +247,19 @@ object DanmakuManager {
         if (playing) v.resume() else v.pause()
     }
 
-    /** 缓冲中冻结弹幕动画，避免缓冲结束瞬间跳变。 */
+    /**
+     * 缓冲中冻结并隐藏弹幕，避免缓冲结束瞬间旧弹幕跳变（对齐 NovaTV pauseForBuffering）。
+     */
     fun setBuffering(buffering: Boolean) {
         val v = view ?: return
         if (!prepared || !DanmuSettings.open) return
-        if (buffering) v.pause() else v.resume()
+        if (buffering) {
+            v.pause()
+            v.visibility = View.INVISIBLE
+        } else {
+            v.visibility = View.VISIBLE
+            v.resume()
+        }
     }
 
     private fun releaseView() {
