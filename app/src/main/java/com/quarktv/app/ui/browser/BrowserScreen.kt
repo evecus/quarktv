@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -150,34 +154,72 @@ private fun BrowserDir(
     }
 
     Column(Modifier.fillMaxSize()) {
-        // 顶栏：返回/设置 + 面包屑
+        // 顶栏：品牌 + 面包屑 + 返回/设置
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // 品牌标识：蓝点 + 应用名（根目录）/ 返回按钮（子目录）
+            if (isRoot) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(QuarkColors.Primary),
+                    )
+                    Text(
+                        "夸克网盘",
+                        modifier = Modifier.padding(start = 12.dp),
+                        color = QuarkColors.TextPrimary,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            } else {
+                TvSurface(
+                    onClick = onBack,
+                    containerColor = QuarkColors.Surface,
+                    focusedColor = QuarkColors.SurfaceHover,
+                    shape = RoundedCornerShape(10.dp),
+                    focusScale = 1f,
+                ) {
+                    Text(
+                        "← 返回",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        color = QuarkColors.TextPrimary,
+                    )
+                }
+            }
+            Spacer(Modifier.width(20.dp))
+            // 面包屑（子目录时显示）
+            if (!isRoot) {
+                Text(
+                    breadcrumb,
+                    color = QuarkColors.TextSecondary,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
             TvSurface(
-                onClick = { if (!isRoot) onBack() else onSettings() },
+                onClick = onSettings,
                 containerColor = QuarkColors.Surface,
                 focusedColor = QuarkColors.SurfaceHover,
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
                 focusScale = 1f,
             ) {
                 Text(
-                    if (isRoot) "设置" else "← 返回",
+                    "设置",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     color = QuarkColors.TextPrimary,
                 )
             }
-            Spacer(Modifier.width(16.dp))
-            Text(
-                breadcrumb,
-                color = QuarkColors.TextSecondary,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
 
         when {
@@ -241,14 +283,15 @@ private fun FileCard(
         onFocus = { if (it) onFocus() },
         containerColor = Color.Transparent,
         focusedColor = QuarkColors.Surface,
+        shape = RoundedCornerShape(14.dp),
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 11f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(QuarkColors.Surface),
+                    .aspectRatio(16f / 10f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(QuarkColors.SurfaceCard),
                 contentAlignment = Alignment.Center,
             ) {
                 if (file.thumbnail.isNotEmpty()) {
@@ -258,10 +301,34 @@ private fun FileCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
+                    // 缩略图底部轻微压暗，让角标更清晰
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    1f to Color(0x66000000),
+                                ),
+                            ),
+                    )
                 } else {
                     Text(
                         if (file.isDir) "📁" else if (file.isAudio) "🎵" else "🎞",
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.displayMedium,
+                    )
+                }
+                // 类型角标：目录加"文件夹"标签，其余显示时长
+                if (file.isDir) {
+                    Text(
+                        "文件夹",
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                            .background(QuarkColors.Primary, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
                 if (!file.isDir && file.duration > 0) {
@@ -269,9 +336,9 @@ private fun FileCard(
                         formatDuration(file.duration),
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(6.dp)
-                            .background(Color(0xCC000000), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                            .padding(8.dp)
+                            .background(Color(0xD9000000), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -279,7 +346,7 @@ private fun FileCard(
             }
             Text(
                 file.filename,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 10.dp),
                 color = QuarkColors.TextPrimary,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
@@ -288,6 +355,7 @@ private fun FileCard(
             if (!file.isDir && file.size > 0) {
                 Text(
                     formatSize(file.size),
+                    modifier = Modifier.padding(top = 2.dp),
                     color = QuarkColors.TextSecondary,
                     style = MaterialTheme.typography.labelSmall,
                 )

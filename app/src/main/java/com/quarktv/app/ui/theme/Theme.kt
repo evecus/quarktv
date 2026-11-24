@@ -1,25 +1,35 @@
 package com.quarktv.app.ui.theme
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,13 +37,17 @@ import androidx.compose.ui.unit.sp
 // 官方夸克风格配色
 object QuarkColors {
     val Background = Color(0xFF111318)
+    val BackgroundDeep = Color(0xFF0A0C10)
     val Surface = Color(0xFF1C1F26)
     val SurfaceHover = Color(0xFF2B3545)
+    val SurfaceCard = Color(0xFF171A21)
     val Primary = Color(0xFF3D7EFF)      // 夸克蓝
+    val PrimarySoft = Color(0x293D7EFF)  // 10% 蓝，用于浅色底纹
     val FocusBorder = Color(0xFF5B9CFF)  // 焦点蓝框（比 Primary 更亮，TV 上更醒目）
     val TextPrimary = Color(0xFFEAECF2)
     val TextSecondary = Color(0xFF8A93A5)
     val Divider = Color(0xFF2A2F3A)
+    val Danger = Color(0xFFFF8080)
 }
 
 /**
@@ -61,24 +75,50 @@ val TvTypography = Typography(
     labelSmall = DefaultTypography.labelSmall.copy(fontSize = 15.sp),
 )
 
-/** 统一主题：套用 TV 放大字号。颜色仍用 QuarkColors 显式指定，不依赖 colorScheme。 */
+/** 深色 colorScheme：让 M3 组件（输入框/指示器等）默认贴合暗色主题。 */
+private val TvColorScheme = darkColorScheme(
+    primary = QuarkColors.Primary,
+    background = QuarkColors.Background,
+    surface = QuarkColors.Surface,
+    surfaceVariant = QuarkColors.SurfaceHover,
+    onPrimary = Color.White,
+    onBackground = QuarkColors.TextPrimary,
+    onSurface = QuarkColors.TextPrimary,
+    onSurfaceVariant = QuarkColors.TextSecondary,
+    error = QuarkColors.Danger,
+)
+
+/** 统一主题：套用 TV 放大字号 + 暗色 colorScheme。 */
 @Composable
 fun QuarkTheme(content: @Composable () -> Unit) {
-    MaterialTheme(typography = TvTypography, content = content)
+    MaterialTheme(
+        typography = TvTypography,
+        colorScheme = TvColorScheme,
+        content = content,
+    )
 }
 
-/** 全屏黑底容器 */
+/** 全屏暗色渐变底容器（自上而下轻微明暗过渡，比纯黑更有层次）。 */
 @Composable
-fun Screen(content: @Composable () -> Unit) {
+fun Screen(
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.TopStart,
+    content: @Composable () -> Unit,
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .background(QuarkColors.Background),
+            .background(
+                Brush.verticalGradient(
+                    listOf(QuarkColors.Background, QuarkColors.BackgroundDeep),
+                ),
+            ),
+        contentAlignment = contentAlignment,
     ) { content() }
 }
 
 /**
- * TV 可聚焦卡片：material3 Surface + 焦点高亮/放大。
+ * TV 可聚焦卡片：material3 Surface + 焦点高亮/平滑放大动画。
  * 遥控器焦点由 Compose focus 系统自动管理（DPAD）。
  */
 @Composable
@@ -95,6 +135,11 @@ fun TvSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) focusScale else 1f,
+        animationSpec = tween(durationMillis = 150),
+        label = "tvFocusScale",
+    )
     Surface(
         onClick = onClick,
         modifier = modifier
@@ -104,7 +149,7 @@ fun TvSurface(
                     onFocus(it.isFocused)
                 }
             }
-            .scale(if (focused) focusScale else 1f),
+            .scale(scale),
         shape = shape,
         color = if (focused) focusedColor else containerColor,
         border = if (focused) BorderStroke(focusBorderWidth, focusBorderColor) else null,
@@ -124,4 +169,28 @@ fun PlainBox(
         modifier = Modifier.clip(shape).background(color),
         content = content,
     )
+}
+
+/** 面板标题：左侧夸克蓝竖条 + 文字，用于弹窗/设置区块，统一视觉语言。 */
+@Composable
+fun PanelTitle(text: String, modifier: Modifier = Modifier, color: Color = QuarkColors.TextPrimary) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(22.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(QuarkColors.Primary),
+        )
+        Text(
+            text,
+            modifier = Modifier.padding(start = 10.dp),
+            color = color,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
 }

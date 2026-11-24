@@ -3,6 +3,7 @@ package com.quarktv.app.danmaku
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.quarktv.app.ui.theme.PanelTitle
 import com.quarktv.app.ui.theme.QuarkColors
 import com.quarktv.app.ui.theme.TvSurface
 import kotlinx.coroutines.Dispatchers
@@ -120,18 +122,18 @@ fun DanmuSearchDialog(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0x99000000)),
+        modifier = Modifier.fillMaxSize().background(Color(0xCC000000)),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
-                .background(QuarkColors.Surface, RoundedCornerShape(16.dp))
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .background(QuarkColors.Surface, RoundedCornerShape(20.dp))
+                .border(1.dp, QuarkColors.Divider, RoundedCornerShape(20.dp))
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("弹幕云搜", color = QuarkColors.TextPrimary,
-                style = MaterialTheme.typography.titleMedium)
+            PanelTitle("弹幕云搜")
 
             // 可编辑输入框 + 搜索按钮（预填文件名，不自动搜索）
             Row(

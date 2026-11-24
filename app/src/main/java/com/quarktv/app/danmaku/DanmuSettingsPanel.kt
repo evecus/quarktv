@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.quarktv.app.ui.theme.PanelTitle
 import com.quarktv.app.ui.theme.QuarkColors
 import com.quarktv.app.ui.theme.TvSurface
 
@@ -44,7 +45,7 @@ fun DanmuSettingsPanel() {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("弹幕设置", color = QuarkColors.Primary, style = MaterialTheme.typography.titleSmall)
+        PanelTitle("弹幕设置", color = QuarkColors.TextPrimary)
 
         SettingRow("弹幕开关") {
             SegChip("开启", open) { apply { DanmuSettings.setOpen(true); open = true } }

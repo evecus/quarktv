@@ -2,6 +2,7 @@ package com.quarktv.app.ui.player
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -139,8 +141,14 @@ fun AudioPlayerScreen(
                     style = MaterialTheme.typography.bodyLarge)
             }
         } else {
-        // 半透明黑底遮罩（对齐 NovaTV #99000000 + app_bg）
-        Box(Modifier.fillMaxSize().background(Color(0x99000000)))
+        // 暗色渐变底遮罩（轻微蓝调，与全局主题呼应）
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(QuarkColors.BackgroundDeep, Color(0xFF141A26)),
+                ),
+            ),
+        )
 
         Row(
             modifier = Modifier.fillMaxSize().padding(40.dp),
@@ -152,10 +160,21 @@ fun AudioPlayerScreen(
                         model = file.thumbnail,
                         contentDescription = title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(320.dp).clip(RoundedCornerShape(12.dp)),
+                        modifier = Modifier
+                            .size(320.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(20.dp)),
                     )
                 } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .size(320.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(QuarkColors.Surface.copy(alpha = 0.6f))
+                            .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(20.dp)),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
                         Text("🎵", style = MaterialTheme.typography.displayLarge,
                             color = Color.White.copy(alpha = 0.5f))
                         Text("暂无封面", color = Color.White.copy(alpha = 0.4f),
@@ -202,12 +221,18 @@ fun AudioPlayerScreen(
                     Text(formatDuration(positionMs / 1000), color = Color.White,
                         style = MaterialTheme.typography.labelMedium)
                     Box(
-                        modifier = Modifier.weight(1f).height(6.dp).padding(horizontal = 16.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color.White.copy(alpha = 0.25f)),
+                        modifier = Modifier.weight(1f).height(8.dp).padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.White.copy(alpha = 0.22f)),
                     ) {
                         val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
-                        Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(QuarkColors.Primary))
+                        Box(
+                            Modifier.fillMaxWidth(fraction).fillMaxHeight().background(
+                                Brush.horizontalGradient(
+                                    listOf(QuarkColors.Primary, QuarkColors.FocusBorder),
+                                ),
+                            ),
+                        )
                     }
                     Text(formatDuration(durationMs / 1000), color = Color.White,
                         style = MaterialTheme.typography.labelMedium)

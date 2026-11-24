@@ -5,12 +5,17 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,11 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.quarktv.app.data.SessionStore
 import com.quarktv.app.quark.QuarkTvClient
 import com.quarktv.app.ui.theme.QuarkColors
+import com.quarktv.app.ui.theme.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -76,34 +83,65 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier.padding(48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+    Screen(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
     ) {
-        Text("夸克网盘", style = MaterialTheme.typography.displaySmall,
-            color = QuarkColors.TextPrimary)
-
-        Box(
-            modifier = Modifier
-                .size(420.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(QuarkColors.Surface),
-            contentAlignment = Alignment.Center,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(28.dp),
+            modifier = Modifier.padding(48.dp),
         ) {
-            val bmp = qrImage
-            if (bmp != null) {
-                Image(
-                    bitmap = bmp.asImageBitmap(),
-                    contentDescription = "登录二维码",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(400.dp),
+            // 品牌区：夸克蓝圆点 + 标题
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(QuarkColors.Primary),
                 )
-            } else {
-                Text("二维码加载中…", color = QuarkColors.TextSecondary)
+                Text(
+                    "夸克网盘",
+                    modifier = Modifier.padding(start = 14.dp),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = QuarkColors.TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
             }
-        }
 
-        Text(status, color = QuarkColors.TextSecondary, textAlign = TextAlign.Center)
+            // 二维码卡片：Surface 底色 + 细描边 + 更大圆角
+            Box(
+                modifier = Modifier
+                    .size(420.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(QuarkColors.Surface)
+                    .border(1.dp, QuarkColors.Divider, RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                val bmp = qrImage
+                if (bmp != null) {
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = "登录二维码",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(372.dp).padding(0.dp),
+                    )
+                } else {
+                    CircularProgressIndicator(color = QuarkColors.Primary)
+                    Text(
+                        "二维码加载中…",
+                        color = QuarkColors.TextSecondary,
+                        modifier = Modifier.padding(top = 90.dp),
+                    )
+                }
+            }
+
+            Text(
+                status,
+                color = QuarkColors.TextSecondary,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleSmall,
+            )
+        }
     }
 }

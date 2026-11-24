@@ -2,6 +2,7 @@ package com.quarktv.app.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.quarktv.app.data.SessionStore
 import com.quarktv.app.danmaku.DanmuSettingsPanel
+import com.quarktv.app.ui.theme.PanelTitle
 import com.quarktv.app.ui.theme.QuarkColors
 import com.quarktv.app.ui.theme.TvSurface
 
@@ -50,20 +52,20 @@ fun SettingsDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0x99000000)),
+            .background(Color(0xCC000000)),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
                 .heightIn(max = 760.dp)
-                .background(QuarkColors.Surface, RoundedCornerShape(16.dp))
+                .background(QuarkColors.Surface, RoundedCornerShape(20.dp))
+                .border(1.dp, QuarkColors.Divider, RoundedCornerShape(20.dp))
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("设置", style = MaterialTheme.typography.headlineSmall,
-                color = QuarkColors.TextPrimary)
+            PanelTitle("设置")
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("播放方式", color = QuarkColors.TextSecondary,

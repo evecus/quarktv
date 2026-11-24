@@ -2,6 +2,7 @@ package com.quarktv.app.ui.player
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -41,6 +43,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -415,12 +418,13 @@ fun VideoPlayerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier
-                        .width(260.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xCC111318))
-                        .padding(20.dp),
+                        .width(300.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xD9111318))
+                        .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(20.dp))
+                        .padding(24.dp),
                 ) {
-                    Text(if (previewDir > 0) "▶▶" else "◀◀", color = Color.White,
+                    Text(if (previewDir > 0) "▶▶" else "◀◀", color = QuarkColors.FocusBorder,
                         style = MaterialTheme.typography.displaySmall)
                     Text(
                         "${formatDuration(previewTargetMs / 1000)} / ${formatDuration(durationMs / 1000)}",
@@ -431,22 +435,45 @@ fun VideoPlayerScreen(
             }
         }
 
-        // ── 顶部标题栏 ──────────────────────────────────────────────────────
+        // ── 顶部标题栏（向下渐隐遮罩）──────────────────────────────────────
         if (showControls && !showMenu && !showDanmuSearch && !showDanmuSettings) {
             Box(
                 modifier = Modifier.align(Alignment.TopStart).fillMaxWidth()
-                    .background(Color(0x80000000)).padding(horizontal = 40.dp, vertical = 20.dp),
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color(0xB3000000),
+                            1f to Color.Transparent,
+                        ),
+                    )
+                    .padding(horizontal = 40.dp, vertical = 20.dp),
             ) {
-                Text(currentFile.filename, color = Color.White,
-                    style = MaterialTheme.typography.titleLarge, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(26.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(QuarkColors.Primary),
+                    )
+                    Text(currentFile.filename, color = Color.White,
+                        style = MaterialTheme.typography.titleLarge, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 12.dp))
+                }
             }
         }
 
-        // ── 底部控制条 ──────────────────────────────────────────────────────
+        // ── 底部控制条（向上渐隐遮罩）──────────────────────────────────────
         if (showControls && !showMenu && !showDanmuSearch && !showDanmuSettings) {
             Column(
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                    .background(Color(0x80000000)).padding(horizontal = 40.dp, vertical = 16.dp),
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            1f to Color(0xE6000000),
+                        ),
+                    )
+                    .padding(horizontal = 40.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // 功能按钮行
@@ -464,7 +491,7 @@ fun VideoPlayerScreen(
                     if (variants.size > 1) {
                         CtrlButton("清晰度", true) { showMenu = true }
                     }
-                    CtrlButton("x$speed", true) { cycleSpeed() }
+                    CtrlButton("倍速 x$speed", true) { cycleSpeed() }
                     CtrlButton("弹幕", true) { showDanmuSettings = true; controlsTick++ }
                     CtrlButton("搜弹幕", true) { showDanmuSearch = true; controlsTick++ }
                 }
@@ -474,14 +501,20 @@ fun VideoPlayerScreen(
                     Text(formatDuration(positionMs / 1000), color = Color.White,
                         style = MaterialTheme.typography.labelMedium)
                     Box(
-                        modifier = Modifier.weight(1f).height(6.dp)
+                        modifier = Modifier.weight(1f).height(8.dp)
                             .padding(horizontal = 16.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color.White.copy(alpha = 0.25f)),
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.White.copy(alpha = 0.22f)),
                     ) {
                         val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
-                        Box(Modifier.fillMaxWidth(fraction).fillMaxHeight()
-                            .background(QuarkColors.Primary))
+                        Box(
+                            Modifier.fillMaxWidth(fraction).fillMaxHeight()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(QuarkColors.Primary, QuarkColors.FocusBorder),
+                                    ),
+                                ),
+                        )
                     }
                     Text(formatDuration(durationMs / 1000), color = Color.White,
                         style = MaterialTheme.typography.labelMedium)
@@ -493,8 +526,10 @@ fun VideoPlayerScreen(
         if (showMenu && variants.isNotEmpty()) {
             Box(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(QuarkColors.Surface.copy(alpha = 0.95f)).padding(16.dp),
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(QuarkColors.Surface.copy(alpha = 0.96f))
+                    .border(1.dp, QuarkColors.Divider, RoundedCornerShape(16.dp))
+                    .padding(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("清晰度", color = QuarkColors.TextSecondary,
@@ -527,8 +562,10 @@ fun VideoPlayerScreen(
                 contentAlignment = Alignment.Center) {
                 Column(
                     modifier = Modifier.fillMaxWidth(0.7f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(QuarkColors.Surface).padding(24.dp),
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(QuarkColors.Surface)
+                        .border(1.dp, QuarkColors.Divider, RoundedCornerShape(20.dp))
+                        .padding(28.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     DanmuSettingsPanel()
@@ -564,11 +601,12 @@ private fun CtrlButton(
     TvSurface(
         onClick = { if (enabled) onClick() },
         modifier = modifier.alpha(if (enabled) 1f else 0.4f),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         containerColor = QuarkColors.Surface.copy(alpha = 0.7f),
         focusedColor = QuarkColors.Primary,
+        focusScale = 1.08f,
     ) {
-        Text(text, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+        Text(text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
             color = Color.White, style = MaterialTheme.typography.labelMedium)
     }
 }
