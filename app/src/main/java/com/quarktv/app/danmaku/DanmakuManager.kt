@@ -214,6 +214,9 @@ object DanmakuManager {
      * 位置跳变（seek）时对齐库时间轴；首次就绪时 start。
      * 对齐 NovaTV startIfReady：首次才 start（初始化绘制循环），已启动后只 seekTo 重新对齐，
      * 避免重复 start 重置弹幕计时器；首次启动时提示"加载弹幕成功"。
+     * 关键：常规播放时也必须更新 lastPosMs，否则它停留在旧值，
+     * 每隔约 1 秒就会被误判为 seek 而反复调用 seekTo —— 库的 seekTo 会清掉屏上弹幕
+     * 并按目标时间重新生成，表现为弹幕在右侧刚出现就被清空、再出现、无限循环。
      */
     fun syncPosition(positionMs: Long, playing: Boolean) {
         val v = view ?: return
@@ -226,7 +229,7 @@ object DanmakuManager {
                     v.start(positionMs)
                     started = true
                     toast("加载弹幕成功")
-                } else {
+                } else if (started) {
                     v.seekTo(positionMs)
                 }
                 lastPosMs = positionMs
@@ -238,6 +241,7 @@ object DanmakuManager {
                 lastPosMs = positionMs
                 toast("加载弹幕成功")
             }
+            else -> lastPosMs = positionMs
         }
     }
 
