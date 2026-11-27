@@ -91,6 +91,10 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
 
+    // Compose for TV：官方 TV 组件，提供焦点缩放 / 描边 / 光晕等 TV 标准焦点动画
+    // 与 compose-bom 2024.09.03 兼容（参考 CoolPlayerTV 的 tv-material:1.0.0）
+    implementation("androidx.tv:tv-material:1.0.0")
+
     // 图片加载（缩略图 / 二维码）
     implementation("io.coil-kt:coil-compose:2.7.0")
 

@@ -1,7 +1,5 @@
 package com.quarktv.app.ui.theme
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -12,20 +10,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -34,6 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.Border
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Glow
+import androidx.tv.material3.Surface as TvMaterialSurface
 
 // 官方夸克风格配色
 object QuarkColors {
@@ -119,9 +117,16 @@ fun Screen(
 }
 
 /**
- * TV 可聚焦卡片：material3 Surface + 焦点高亮/平滑放大动画。
+ * TV 可聚焦卡片：基于官方 Compose for TV 的 [androidx.tv.material3.Surface]。
+ *
+ * 焦点态由 tv-material 统一驱动：平滑放大（scale）+ 描边（border）+ 柔和光晕（glow），
+ * 比手写的 animateFloatAsState 更贴合 TV 遥控器交互规范，也天然支持长按。
  * 遥控器焦点由 Compose focus 系统自动管理（DPAD）。
+ *
+ * 注意：参数签名与旧实现完全一致，所有调用点无需改动；
+ * [onFocus] 仍通过 [Modifier.onFocusChanged] 上报，供目录页记忆焦点位置。
  */
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun TvSurface(
     onClick: () -> Unit,
@@ -135,28 +140,37 @@ fun TvSurface(
     onFocus: (Boolean) -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (focused) focusScale else 1f,
-        animationSpec = tween(durationMillis = 150),
-        label = "tvFocusScale",
-    )
-    Surface(
+    // 内容色沿用外层 material3 的 LocalContentColor，避免 tv 主题覆盖文字颜色
+    val contentColor = LocalContentColor.current
+    TvMaterialSurface(
         onClick = onClick,
-        modifier = modifier
-            .onFocusChanged {
-                if (it.isFocused != focused) {
-                    focused = it.isFocused
-                    onFocus(it.isFocused)
-                }
-            }
-            .scale(scale),
-        shape = shape,
-        color = if (focused) focusedColor else containerColor,
-        border = if (focused) BorderStroke(focusBorderWidth, focusBorderColor) else null,
-    ) {
-        Box(content = content)
-    }
+        modifier = modifier.onFocusChanged { onFocus(it.isFocused) },
+        shape = ClickableSurfaceDefaults.shape(shape = shape),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            focusedContainerColor = focusedColor,
+            focusedContentColor = contentColor,
+            pressedContainerColor = focusedColor,
+            pressedContentColor = contentColor,
+            disabledContainerColor = containerColor,
+            disabledContentColor = contentColor,
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = focusScale),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(
+                border = BorderStroke(focusBorderWidth, focusBorderColor),
+                shape = shape,
+            ),
+        ),
+        glow = ClickableSurfaceDefaults.glow(
+            focusedGlow = Glow(
+                elevationColor = focusBorderColor.copy(alpha = 0.4f),
+                elevation = 12.dp,
+            ),
+        ),
+        content = content,
+    )
 }
 
 /** 静态圆角容器（卡片底色） */
