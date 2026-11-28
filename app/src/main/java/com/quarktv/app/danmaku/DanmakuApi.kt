@@ -159,7 +159,7 @@ object DanmakuApi {
 
     /** 加载云搜选中条目：内置条目需再取 comment JSON 转 XML。 */
     suspend fun loadSearchResult(result: DanmuSearchResult): String {
-        if (result.url.isEmpty()) return ""
+        if (result.url.trim().isEmpty()) return ""
         if (!result.builtIn) return result.url
         return try { commentJsonToXml(getWithRetry(result.url)) } catch (_: Exception) { "" }
     }
@@ -189,14 +189,14 @@ object DanmakuApi {
                 val array = JSONArray(text)
                 for (i in 0 until array.length()) {
                     val item = array.optJSONObject(i) ?: continue
-                    val url = optStr(item, "url")
+                    val url = optStr(item, "url")?.trim()
                     if (!url.isNullOrEmpty()) return url
                 }
                 ""
             } catch (_: Exception) { "" }
         }
         if (text.startsWith("{")) {
-            return try { optStr(JSONObject(text), "url").orEmpty() } catch (_: Exception) { "" }
+            return try { optStr(JSONObject(text), "url").orEmpty().trim() } catch (_: Exception) { "" }
         }
         if (text.startsWith("http") || text.startsWith("file")) return text
         return ""
@@ -213,7 +213,7 @@ object DanmakuApi {
             when (val items = obj.opt("data") ?: obj.opt("list") ?: obj.opt("results")) {
                 is JSONArray -> { appendSearchResults(results, items); return results }
             }
-            val url = optStr(obj, "url")
+            val url = optStr(obj, "url")?.trim()
             if (!url.isNullOrEmpty()) {
                 results.add(DanmuSearchResult(firstStr(obj, listOf("name", "title")), url))
             }
@@ -225,7 +225,7 @@ object DanmakuApi {
     private fun appendSearchResults(results: MutableList<DanmuSearchResult>, items: JSONArray) {
         for (i in 0 until items.length()) {
             val item = items.optJSONObject(i) ?: continue
-            val url = optStr(item, "url")
+            val url = optStr(item, "url")?.trim()
             if (url.isNullOrEmpty()) continue
             results.add(DanmuSearchResult(firstStr(item, listOf("name", "title", "episode", "vod_name")), url))
         }

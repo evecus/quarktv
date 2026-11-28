@@ -35,6 +35,8 @@ object DanmakuManager {
     private var prepared = false
     private var started = false
     private var lastPosMs = -1L
+    /** 播放器当前是否在播（由 setPlaying 维护，缓冲结束时据此决定是否恢复弹幕）。 */
+    @Volatile private var playing = false
     @Volatile private var loadSeq = 0
 
     private val _status = MutableStateFlow(DanmakuLoadStatus.IDLE)
@@ -246,6 +248,7 @@ object DanmakuManager {
     }
 
     fun setPlaying(playing: Boolean) {
+        this.playing = playing
         val v = view ?: return
         if (!prepared || !DanmuSettings.open) return
         if (playing) v.resume() else v.pause()
@@ -262,7 +265,9 @@ object DanmakuManager {
             v.visibility = View.INVISIBLE
         } else {
             v.visibility = View.VISIBLE
-            v.resume()
+            // 缓冲期间用户若按了暂停，缓冲结束时视频仍是暂停态，弹幕不能自己跑起来；
+            // 真正恢复播放由 onIsPlayingChanged → setPlaying(true) 负责。
+            if (playing) v.resume()
         }
     }
 

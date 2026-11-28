@@ -12,7 +12,8 @@ import java.util.zip.InflaterInputStream
 /** 弹幕网络小助手（精简自 ubox Http）：失败/非 2xx/空 body 统一返回 null。 */
 internal object DanmuHttp {
 
-    private const val UA = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/533.1 Mobile Safari/533.1"
+    // 与 ubox Http.DEFAULT_UA 保持一致（ubox 已验证可用的请求特征）
+    private const val UA = "okhttp/4.12.0"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
